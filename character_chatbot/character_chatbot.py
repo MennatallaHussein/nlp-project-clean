@@ -24,7 +24,7 @@ def remove_paranthhesis(text):
 class CharacterChatBot():
     def __init__(self,
                 model_path,
-                data_path= 'naruto.csv',
+                data_path="/content/nlp-project-clean/data/naruto.csv",
                 huggingface_token=None
                 ):
     
