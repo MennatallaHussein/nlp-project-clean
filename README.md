@@ -44,7 +44,9 @@ Along the way, I explored web scraping, neural networks, Transformers, entity re
 ```bash
 git clone https://github.com/MennatallaHussein/nlp-project-clean.git
 cd nlp-project-clean
-
+pip install -r requirements.txt
+python main.py   # or the module I wanted to run
+```
 
 ### 🔹 On Google Colab (with GPU)  
 
@@ -54,21 +56,19 @@ cd nlp-project-clean
 ```bash
 !git clone https://github.com/MennatallaHussein/nlp-project-clean.git
 %cd nlp-project-clean
+!pip install -r requirements.txt
+```
 
-
-
+### 📂 Project Structure
+```
 nlp-project-clean/
-│── data/              # Datasets I collected
-│── scrapy/            # My web scraping spiders
-│── models/            # Trained Hugging Face models
-│── notebooks/         # Colab & Jupyter experiments
-│── src/               # Core code (NER, classifiers, chatbot)
-│── outputs/           # Results, graphs, trained models
-│── requirements.txt   # Dependencies
-│── main.py            # Example pipeline script
-│── README.md          # This file
-
-
-
-pip install -r requirements.txt
-python main.py   # or the module I wanted to run
+│── data/ # Datasets I collected
+│── scrapy/ # My web scraping spiders
+│── models/ # Trained Hugging Face models
+│── notebooks/ # Colab & Jupyter experiments
+│── src/ # Core code (NER, classifiers, chatbot)
+│── outputs/ # Results, graphs, trained models
+│── requirements.txt # Dependencies
+│── main.py # Example pipeline script
+│── README.md # This file
+```
