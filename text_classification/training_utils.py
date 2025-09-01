@@ -7,22 +7,17 @@ import evaluate
 metric = evaluate.load('accuracy')
 
 
-
 def compute_metrics(eval_pred):
-    logits, labels = eval_pred
-    if isinstance(logits, (list, tuple)):
-        logits = np.array(logits)
-    preds = np.argmax(logits, axis=-1)
-    labels = np.array(labels)
-    acc = float((preds == labels).astype(np.float32).mean())
-    return {"accuracy": acc}
-
+    predictions, labels = eval_pred
+    predictions = np.argmax(predictions, axis=1)
+    return metric.compute(predictions=predictions, references=labels)
 
 
 
 def get_class_weights(df):
-    labels = np.array(labels)
-    classes = np.unique(labels)
-    weights = compute_class_weight(class_weight='balanced', classes=classes, y=labels)
-    return {int(c): float(w) for c, w in zip(classes, weights)}
-
+    class_weights = compute_class_weight(
+        class_weight="balanced",
+        classes=np.array(sorted(df['label'].unique().tolist())),
+        y=df['label'].values   # directly use numpy array instead of .tolist()
+    )
+    return class_weights
