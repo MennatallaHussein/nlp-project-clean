@@ -25,7 +25,7 @@ class CharacterChatBot():
     def __init__(self,
                 model_path,
                 data_path="/content/nlp-project-clean/data/naruto.csv",
-                huggingface_token=None
+                huggingface_token=None,
                 use_quantization=False 
                 ):
     
