@@ -35,9 +35,23 @@ class CharacterChatBot():
         self.base_model_path="meta-llama/Meta-Llama-3-8B-Instruct"
         self.device= 'cuda' if torch.cuda.is_available() else 'cpu'   
         self.use_quantization = use_quantization   # store it
+                    
 
         if self.huggingface_token is not None:
             huggingface_hub.login(self.huggingface_token)
+            
+        try:
+            # ✅ Check if model exists on Hugging Face Hub
+            model_info(self.model_path)
+            print("Loading model from Hugging Face Hub:", self.model_path)
+            self.model = self.load_model(self.model_path, use_quantization=use_quantization)
+        
+        except Exception:
+            # Fallback to training (not recommended on Colab!)
+            print("Model not found on Hub. Training from base model...")
+            train_dataset=self.load_data()
+            self.train(self.base_model_path , train_dataset)
+            self.model=self.load_model(self.model_path, use_quantization=use_quantization)
 
 
         if os.path.exists(self.model_path) and os.listdir(self.model_path):
@@ -77,6 +91,7 @@ class CharacterChatBot():
                 device=0 if self.device == 'cuda' else -1,
                 torch_dtype=torch.float16 if self.device == 'cuda' else torch.float32
             )
+            
         return pipeline
 
 
