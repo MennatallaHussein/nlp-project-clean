@@ -7,7 +7,7 @@ class Cleaner():
 
     def put_line_breaks(self, text):
         return text.replace(r"<\p>", r"<\p>\n")
-)
+
 
     def remove_html_tag(self, text):
         clean_text= BeautifulSoup(text, "html.parser").text
