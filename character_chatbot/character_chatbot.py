@@ -26,6 +26,7 @@ class CharacterChatBot():
                 model_path,
                 data_path="/content/nlp-project-clean/data/naruto.csv",
                 huggingface_token=None
+                use_quantization=False 
                 ):
     
         self.model_path=model_path
@@ -33,6 +34,7 @@ class CharacterChatBot():
         self.huggingface_token = huggingface_token
         self.base_model_path="meta-llama/Meta-Llama-3-8B-Instruct"
         self.device= 'cuda' if torch.cuda.is_available() else 'cpu'   
+        self.use_quantization = use_quantization   # store it
 
         if self.huggingface_token is not None:
             huggingface_hub.login(self.huggingface_token)
@@ -54,12 +56,12 @@ class CharacterChatBot():
 
 
     def load_model(self, model_path):
+        if self.use_quantization:
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_compute_dtype=torch.float16,
             )
-
             pipeline = transformers.pipeline(
                 'text-generation',
                 model=model_path,
@@ -68,8 +70,14 @@ class CharacterChatBot():
                     "quantization_config": bnb_config,
                 }
             )
-            return pipeline
-
+        else:
+            pipeline = transformers.pipeline(
+                'text-generation',
+                model=model_path,
+                device=0 if self.device == 'cuda' else -1,
+                torch_dtype=torch.float16 if self.device == 'cuda' else torch.float32
+            )
+        return pipeline
 
 
 
@@ -132,17 +140,24 @@ class CharacterChatBot():
               lr_scheduler_type = "constant",
               ):
         
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.float16,
-        )
+        if self.use_quantization:
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.float16,
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                base_model_name_or_path,
+                quantization_config=bnb_config,
+                trust_remote_code=True
+            )
+        else:
+            model = AutoModelForCausalLM.from_pretrained(
+                base_model_name_or_path,
+                torch_dtype=torch.float16 if self.device == 'cuda' else torch.float32,
+                trust_remote_code=True
+            )
 
-        model= AutoModelForCausalLM.from_pretrained(
-            base_model_name_or_path,
-            quantization_config=bnb_config ,
-            trust_remote_code=True
-        )
 
         model.config.use_cache=False
 
@@ -152,9 +167,6 @@ class CharacterChatBot():
         lora_alpha=16
         lora_dropout=0.1
         lora_r=64
-
-     
-
 
 
         peft_config = LoraConfig(
