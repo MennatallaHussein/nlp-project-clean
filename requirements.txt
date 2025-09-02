@@ -1,15 +1,14 @@
-transformers==4.44.0
-huggingface_hub>=0.25.0
+huggingface_hub==0.26.0
 nltk==3.8.1
 gradio==4.36.1
-pyvis==0.3.2
-evaluate==0.4.2
 python-dotenv==1.0.1
-git+https://github.com/huggingface/peft.git
-trl==0.9.6
-bitsandbytes==0.43.3
-
-# Compatibility fixes
-fastapi<0.100
-pydantic<2
-
+git httpsgithub.comhuggingfacepeft.git
+trl
+transformers 
+pyvis
+evaluate
+ctransformers
+peft==0.11.1
+accelerate
+triton
+bitsandbytes 
