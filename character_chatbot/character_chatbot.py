@@ -43,62 +43,54 @@ class CharacterChatBot():
             self.train(self.base_model_path, train_dataset)
             self.model = self.load_model(self.model_path)
     
+
     def chat(self, message, history):
-        messages = []
-        # Add the system ptomp 
-        messages.append({"role":"system","content":""""Your are Naruto from the anime "Naruto". Your responses should reflect his personality and speech patterns \n"""})
+            # Prepare conversation history
+            messages = [
+                {"role": "system", "content": "You are Naruto from the anime 'Naruto'. Your responses should reflect his personality and speech patterns."}
+            ]
 
-        for message_and_respnse in history:
-            messages.append({"role":"user","content":message_and_respnse[0]})
-            messages.append({"role":"assistant","content":message_and_respnse[1]})
-        
-        messages.append({"role":"user","content":message})
+            # Add past turns to messages
+            for user_msg, bot_msg in history:
+                messages.append({"role": "user", "content": user_msg})
+                messages.append({"role": "assistant", "content": bot_msg})
 
-        terminator = [
-            self.model.tokenizer.eos_token_id,
-            self.model.tokenizer.convert_tokens_to_ids("<|eot_id|>")
-        ]
+            # Add the latest user message
+            messages.append({"role": "user", "content": message})
 
-        output = self.model(
-            messages,
-            max_length=256,
-            eos_token_id=terminator,
-            do_sample=True,
-            temperature=0.6,
-            top_p=0.9
-        )
+            terminator = [
+                self.model.tokenizer.eos_token_id,
+                self.model.tokenizer.convert_tokens_to_ids("<|eot_id|>")
+            ]
 
-        output_message = output[0]['generated_text'][-1]
-        return output_message
+            output = self.model(
+                messages,
+                max_length=256,
+                eos_token_id=terminator,
+                do_sample=True,
+                temperature=0.6,
+                top_p=0.9
+            )
+
+            output_message = output[0]['generated_text'][-1]
+            return output_message
+
+
 
 
     def load_model(self, model_path):
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
-            bnb_4bit_use_double_quant=True,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_compute_dtype=torch.float16,
         )
-
-        # load model in 4-bit
-        model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            quantization_config=bnb_config,
-            device_map="auto",
-            trust_remote_code=True,
-        )
-
-        tokenizer = AutoTokenizer.from_pretrained(model_path)
-
-        # now build pipeline without passing quantization_config again
-        pipeline = transformers.pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=tokenizer,
-            device_map="auto",
-        )
+        pipeline = transformers.pipeline("text-generation",
+                                         model = model_path,
+                                         model_kwargs={"torch_dtype":torch.float16,
+                                                       "quantization_config":bnb_config,
+                                                       }
+                                         )
         return pipeline
-
     
     def train(self,
               base_model_name_or_path,
@@ -116,9 +108,14 @@ class CharacterChatBot():
               lr_scheduler_type = "constant",
               ):
         
-
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+        )
 
         model = AutoModelForCausalLM.from_pretrained(base_model_name_or_path, 
+                                                     quantization_config= bnb_config,
                                                      trust_remote_code=True)
         model.config.use_cache = False
 
@@ -178,6 +175,7 @@ class CharacterChatBot():
 
         base_model = AutoModelForCausalLM.from_pretrained(base_model_name_or_path,
                                                           return_dict=True,
+                                                          quantization_config=bnb_config,
                                                           torch_dtype = torch.float16,
                                                           device_map = self.device
                                                           )
