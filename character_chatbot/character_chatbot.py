@@ -22,7 +22,7 @@ class CharacterChatBot():
 
     def __init__(self,
                  model_path,
-                 data_path="/content/data/naruto.csv",
+                 data_path="/content/nlp-project-clean/data/naruto.csv",
                  huggingface_token = None
                  ):
         
@@ -119,8 +119,8 @@ class CharacterChatBot():
                                                      trust_remote_code=True)
         model.config.use_cache = False
 
-        toknizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
-        toknizer.pad_token = toknizer.eos_token
+        tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
+        tokenizer.pad_token = tokenizer.eos_token
 
         lora_alpha = 16
         lora_dropout = 0.1
@@ -131,7 +131,6 @@ class CharacterChatBot():
             lora_dropout=lora_dropout,
             r=lora_r,
             bias="none",
-            task_type="CASUAL_LM"
         )
 
         training_arguments = SFTConfig(
@@ -157,9 +156,7 @@ class CharacterChatBot():
             model = model,
             train_dataset=dataset,
             peft_config=peft_config,
-            dataset_text_field="prompt",
-            max_seq_length=max_seq_len,
-            tokenizer=toknizer,
+            processing_class=tokenizer,  
             args = training_arguments,
         )
 
@@ -167,7 +164,7 @@ class CharacterChatBot():
 
         # Save model 
         trainer.model.save_pretrained("final_ckpt")
-        toknizer.save_pretrained("final_ckpt")
+        tokenizer.save_pretrained("final_ckpt")
 
         # Flush memory
         del trainer, model
@@ -190,6 +187,9 @@ class CharacterChatBot():
         del model, base_model
         gc.collect()
 
+
+
+
     def load_data(self):
         naruto_transcript_df = pd.read_csv(self.data_path)
         naruto_transcript_df = naruto_transcript_df.dropna()
@@ -197,24 +197,34 @@ class CharacterChatBot():
         naruto_transcript_df['number_of_words'] = naruto_transcript_df['line'].str.strip().str.split(" ")
         naruto_transcript_df['number_of_words'] = naruto_transcript_df['number_of_words'].apply(lambda x: len(x))
         naruto_transcript_df['naruto_response_flag'] = 0
-        naruto_transcript_df.loc[(naruto_transcript_df['name']=="Naruto")&(naruto_transcript_df['number_of_words']>5),'naruto_response_flag']=1
+        naruto_transcript_df.loc[
+            (naruto_transcript_df['name'] == "Naruto") & (naruto_transcript_df['number_of_words'] > 5),
+            'naruto_response_flag'
+        ] = 1
 
-        indexes_to_take = list(naruto_transcript_df[(naruto_transcript_df['naruto_response_flag']==1)&(naruto_transcript_df.index>0)].index)
+        indexes_to_take = list(naruto_transcript_df[
+            (naruto_transcript_df['naruto_response_flag'] == 1) & (naruto_transcript_df.index > 0)
+        ].index)
 
-        system_promt = """" Your are Naruto from the anime "Naruto". Your responses should reflect his personality and speech patterns \n"""
+        system_prompt = "You are Naruto from the anime 'Naruto'. Your responses should reflect his personality and speech patterns.\n"
+
         prompts = []
-        for ind in indexes_to_take:
-            prompt = system_promt
+        completions = []
 
-            prompt += naruto_transcript_df.iloc[ind -1]['line']
-            prompt += '\n'
-            prompt += naruto_transcript_df.iloc[ind]['line']
+        for ind in indexes_to_take:
+            # Previous line as user prompt
+            user_line = naruto_transcript_df.iloc[ind - 1]['line']
+            # Naruto's response as completion
+            naruto_line = naruto_transcript_df.iloc[ind]['line']
+
+            prompt = system_prompt + user_line + "\n"
+            completion = naruto_line   # optional EOS token
+
             prompts.append(prompt)
-        
-        df = pd.DataFrame({"prompt":prompts})
+            completions.append(completion)
+
+        df = pd.DataFrame({"prompt": prompts, "completion": completions})
         dataset = Dataset.from_pandas(df)
 
         return dataset
 
-
-        
